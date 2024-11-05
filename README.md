@@ -6,3 +6,9 @@ Tak sie kompiluje wszystko :)
 ```
 make -f Makefile.chebyshev
 ```
+
+jak chcesz usunąć pliki z *.o
+
+```
+rm *.o
+```
