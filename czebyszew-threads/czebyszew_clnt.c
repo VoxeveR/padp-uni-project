@@ -4,20 +4,20 @@
  */
 
 #include <memory.h> /* for memset */
-#include "chebyshev.h"
+#include "czebyszew.h"
 
 /* Default timeout can be changed using clnt_control() */
 static struct timeval TIMEOUT = { 25, 0 };
 
-output_data *
-solve_1(input_data *argp, CLIENT *clnt)
+SolverResult *
+calculatechebyshevsolution_1(LinearSystem *argp, CLIENT *clnt)
 {
-	static output_data clnt_res;
+	static SolverResult clnt_res;
 
 	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, SOLVE,
-		(xdrproc_t) xdr_input_data, (caddr_t) argp,
-		(xdrproc_t) xdr_output_data, (caddr_t) &clnt_res,
+	if (clnt_call (clnt, calculateChebyshevSolution,
+		(xdrproc_t) xdr_LinearSystem, (caddr_t) argp,
+		(xdrproc_t) xdr_SolverResult, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}

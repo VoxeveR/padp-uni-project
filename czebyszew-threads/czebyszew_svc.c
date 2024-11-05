@@ -3,7 +3,7 @@
  * It was generated using rpcgen.
  */
 
-#include "chebyshev.h"
+#include "czebyszew.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <rpc/pmap_clnt.h>
@@ -17,10 +17,10 @@
 #endif
 
 static void
-chebyshev_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
+chebyshev_solver_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 {
 	union {
-		input_data solve_1_arg;
+		LinearSystem calculatechebyshevsolution_1_arg;
 	} argument;
 	char *result;
 	xdrproc_t _xdr_argument, _xdr_result;
@@ -31,10 +31,10 @@ chebyshev_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 		(void) svc_sendreply (transp, (xdrproc_t) xdr_void, (char *)NULL);
 		return;
 
-	case SOLVE:
-		_xdr_argument = (xdrproc_t) xdr_input_data;
-		_xdr_result = (xdrproc_t) xdr_output_data;
-		local = (char *(*)(char *, struct svc_req *)) solve_1_svc;
+	case calculateChebyshevSolution:
+		_xdr_argument = (xdrproc_t) xdr_LinearSystem;
+		_xdr_result = (xdrproc_t) xdr_SolverResult;
+		local = (char *(*)(char *, struct svc_req *)) calculatechebyshevsolution_1_svc;
 		break;
 
 	default:
@@ -62,15 +62,15 @@ main (int argc, char **argv)
 {
 	register SVCXPRT *transp;
 
-	pmap_unset (CHEBYSHEV_PROG, CHEBYSHEV_VERS);
+	pmap_unset (CHEBYSHEV_SOLVER_PROG, CHEBYSHEV_SOLVER_VERS);
 
 	transp = svcudp_create(RPC_ANYSOCK);
 	if (transp == NULL) {
 		fprintf (stderr, "%s", "cannot create udp service.");
 		exit(1);
 	}
-	if (!svc_register(transp, CHEBYSHEV_PROG, CHEBYSHEV_VERS, chebyshev_prog_1, IPPROTO_UDP)) {
-		fprintf (stderr, "%s", "unable to register (CHEBYSHEV_PROG, CHEBYSHEV_VERS, udp).");
+	if (!svc_register(transp, CHEBYSHEV_SOLVER_PROG, CHEBYSHEV_SOLVER_VERS, chebyshev_solver_prog_1, IPPROTO_UDP)) {
+		fprintf (stderr, "%s", "unable to register (CHEBYSHEV_SOLVER_PROG, CHEBYSHEV_SOLVER_VERS, udp).");
 		exit(1);
 	}
 
@@ -79,8 +79,8 @@ main (int argc, char **argv)
 		fprintf (stderr, "%s", "cannot create tcp service.");
 		exit(1);
 	}
-	if (!svc_register(transp, CHEBYSHEV_PROG, CHEBYSHEV_VERS, chebyshev_prog_1, IPPROTO_TCP)) {
-		fprintf (stderr, "%s", "unable to register (CHEBYSHEV_PROG, CHEBYSHEV_VERS, tcp).");
+	if (!svc_register(transp, CHEBYSHEV_SOLVER_PROG, CHEBYSHEV_SOLVER_VERS, chebyshev_solver_prog_1, IPPROTO_TCP)) {
+		fprintf (stderr, "%s", "unable to register (CHEBYSHEV_SOLVER_PROG, CHEBYSHEV_SOLVER_VERS, tcp).");
 		exit(1);
 	}
 
