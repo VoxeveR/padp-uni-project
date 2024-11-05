@@ -1,11 +1,16 @@
 #include "czebyszew.h"
 #include <memory.h>
+#include <time.h>
+#include <stdio.h>
 
 int main(int argc, char *argv[]) {
     CLIENT *client;
     LinearSystem linearSystem;
     SolverResult *solverResult;
     char *serverHost;
+
+	clock_t start, end;
+    double cpu_time_used;
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <server_host>\n", argv[0]);
@@ -27,12 +32,18 @@ int main(int argc, char *argv[]) {
     linearSystem.errorTolerance = 0.0001;
     linearSystem.maxIterations = 100;
 
+	start = clock();
+
     solverResult = calculatechebyshevsolution_1(&linearSystem, client);
     if (solverResult == NULL) {
         fprintf(stderr, "Call failed\n");
         clnt_destroy(client);
         return 1;
     }
+
+	end = clock();
+	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+	printf("Time CPU: %f s\n", cpu_time_used);
 
     if (solverResult->status == 0) {
         printf("Solution found in %d iterations:\n", solverResult->iterationsPerformed);
