@@ -4,6 +4,7 @@ import java.util.concurrent.Executors;
 
 class GFGImplementation implements gaussianElimination {
     public static int N;
+    public static ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     //SEQUENTIALLY
     @Override
@@ -28,14 +29,12 @@ class GFGImplementation implements gaussianElimination {
             return null;
         }
  
-    /* get solution to system and print it using
-           backward substitution */
+        // wyznazanie wartosci x
         return backSub(mat);
     }
 
     // funkcja do zamieniania dwóch rzędów miejscami
     private static void swap_row(double mat[][], int i, int j) {
-        // printf("Swapped rows %d and %d\n", i, j);
 
         for (int k = 0; k <= N; k++) {
             double temp = mat[i][k];
@@ -44,7 +43,6 @@ class GFGImplementation implements gaussianElimination {
         }
     }
 
-    // function to print matrix content at any stage
     private static void print(double mat[][]) {
         for (int i = 0; i < N; i++, System.out.println())
             for (int j = 0; j <= N; j++)
@@ -152,13 +150,11 @@ class GFGImplementation implements gaussianElimination {
             return null;
         }
 
-    /* get solution to system and print it using
-           backward substitution */
+        // wyznaczanie wartosci x
         return backSub(mat);
     }
 
     private static int forwardElimThreaded(double mat[][]) {
-        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
         for (int k = 0; k < N; k++) {
             // Pivotowanie
@@ -176,7 +172,7 @@ class GFGImplementation implements gaussianElimination {
             // Sprawdzenie osobliwości macierzy
             if (v_max == 0) {
                 executor.shutdownNow();
-                return k; // Macierz osobliwa
+                return k;
             }
 
             // Zamiana wierszy (pivot)
@@ -187,17 +183,15 @@ class GFGImplementation implements gaussianElimination {
             // Ustalony pivot, eliminujemy elementy poniżej
             final int pivotRow = k;
 
-            // Użycie ExecutorService dla równoległego przetwarzania wierszy
+            // obliczanie
             for (int i = k + 1; i < N; i++) {
                 final int currentRow = i;
                 executor.submit(() -> {
                     double factor = mat[currentRow][pivotRow] / mat[pivotRow][pivotRow];
                     for (int j = pivotRow + 1; j <= N; j++) {
-                        synchronized (mat) { // Synchronizacja dostępu do wspólnej macierzy
                             mat[currentRow][j] -= mat[pivotRow][j] * factor;
                         }
-                    }
-                    mat[currentRow][pivotRow] = 0; // Zerowanie wartości pod pivotem
+                    mat[currentRow][pivotRow] = 0;
                 });
             }
 
