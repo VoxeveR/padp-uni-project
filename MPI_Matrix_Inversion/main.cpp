@@ -3,7 +3,7 @@
 #include <vector>
 #include <iomanip>
 
-#define N 8  // Rozmiar macierzy
+#define N 10  // Rozmiar macierzy
 
 void printMatrix(double* matrix, int n) {
     for (int i = 0; i < n; i++) {

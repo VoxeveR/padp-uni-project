@@ -2,10 +2,10 @@ CC = mpic++
 CFLAGS = -std=c++11
 
 all:
-	$(CC) main.cpp -o main
+	$(CC) test.cpp -o test
 
 run: all
-	mpirun -np 4 main
+	mpirun -np 2 main
 
 clean:
 	del main
