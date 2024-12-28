@@ -3,7 +3,7 @@
 #include <vector>
 #include <iomanip>
 
-#define N 10  // Rozmiar macierzy
+#define N 1000  // Rozmiar macierzy
 
 void printMatrix(double* matrix, int n) {
     for (int i = 0; i < n; i++) {
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
         }
         
         std::cout << "Macierz początkowa:\n";
-        printMatrix(A, N);
+        //printMatrix(A, N);
     }
 
     // Rozdzielenie danych
@@ -66,7 +66,6 @@ int main(int argc, char** argv) {
     double* pivot_row_A = new double[N];
     double* pivot_row_I = new double[N];
 
-    // Eliminacja Gaussa-Jordana
     for (int k = 0; k < N; k++) {
         int pivot_proc = k / rows_per_proc;
         int local_row = k % rows_per_proc;
@@ -118,7 +117,7 @@ int main(int argc, char** argv) {
     // Wyświetlenie wyniku i czasu wykonania
     if (rank == 0) {
         std::cout << "\nMacierz odwrócona:\n";
-        printMatrix(result, N);
+       // printMatrix(result, N);
         
         std::cout << "\nCzasy wykonania:\n";
         std::cout << "Całkowity czas wykonania: " << end_time - start_time << " sekund\n";
