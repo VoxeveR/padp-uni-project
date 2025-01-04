@@ -62,18 +62,18 @@ int main(int argc, char* argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     srand(time(0)); 
-    int n = 8; 
-    int m = 8; 
-    int p = 8;
+    int n = 8; // rowsA
+    int m = 8; // colsA, rowsB
+    int p = 8; // colsB
 
-    if (m % size != 0) {
+    if (n % size != 0) {
         if (rank == 0)
             cout << "Liczba procesów musi być dzielnikiem liczby kolumn pierwszej macierzy!" << endl;
         MPI_Finalize();
         return 1;
     }
 
-    int rows_per_process = m / size;
+    int rows_per_process = n / size;
 
     // a -> n, m
     // b -> m, p
@@ -85,62 +85,181 @@ int main(int argc, char* argv[]) {
     generateMatrix(B, m, p);
 
     // Alokacja pamięci dla macierzy
-    double** local_A = allocateMatrix(rows_per_process, m);
+    double** local_A;
+    double** local_B;
     double** local_C = allocateMatrix(rows_per_process, p);
     //macierz do rozsyłu danych
     double** A = nullptr;
-
+    double** C = nullptr;
+    
     if (rank == 0) {
         //generowanie macierzy do rozsyłu danych wp rocesie 0
         A = allocateMatrix(n, m);
+        C = allocateMatrix(n, p);
         generateMatrix(A, n, m);
-        generateMatrix(B, m, p);
 
         cout << "Pierwsza macierz (" << n << "x" << m << "):\n";
         printMatrix(A, n, m);
+        
+        cout << "Druga macierz (" << n << "x" << m << "):\n";
+        printMatrix(B, n, m);
     }
 
+
     if (rank == 0) {
+      local_A = allocateMatrix(rows_per_process, m);
+      local_C = allocateMatrix(rows_per_process, p);
       for(int i = 0; i < rows_per_process; i++) {
         for(int j = 0; j < m; j++) {
           local_A[i][j] = A[i][j];
         }
       }
 
+        //sending to processor 1
       for(int i = 0; i < rows_per_process; i++) {
-        MPI_Send(A[i + 2], m, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
+        MPI_Send(A[i + rows_per_process], m, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
       }
 
-    for(int i = 0; i < rows_per_process; i++) {
-        MPI_Send(A[i + 4], m, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD);
-      }
+        //sending to processor 2
+        for(int i = 0; i < rows_per_process * 2; i++) {
+            MPI_Send(A[i + rows_per_process * 2], m, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD);
+        } 
     }
 
     if(rank == 1) {
+
+        local_A = allocateMatrix(rows_per_process, m);
+        local_C = allocateMatrix(rows_per_process, p);
       for(int i = 0; i < rows_per_process; i++) {
         MPI_Recv(local_A[i], m, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
 
-        std::cout<<"Local Matrix Processor 1" << std::endl;
-        printMatrix(local_A, rows_per_process, m);
+      //  std::cout<<"Local Matrix Processor 1" << std::endl;
+       // printMatrix(local_A, rows_per_process, m);
     }
+
 
     if(rank == 2) {
-      for(int i = 0; i < rows_per_process; i++) {
+        local_A = allocateMatrix(rows_per_process*2, m);
+        local_C = allocateMatrix(rows_per_process*2, p);
+
+      for(int i = 0; i < rows_per_process*2; i++) {
         MPI_Recv(local_A[i], m, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
 
-        std::cout<<"Local Matrix Processor 2" << std::endl;
-        printMatrix(local_A, rows_per_process, m);
+      for(int i = 0; i < rows_per_process; i++){
+        MPI_Send(local_A[i + rows_per_process], m, MPI_DOUBLE, 3, 0, MPI_COMM_WORLD);
+      }
+
+      //  std::cout<<"Local Matrix Processor 2" << std::endl;
+      //  printMatrix(local_A, rows_per_process*2, m);
+    }
+
+    if(rank == 3){
+      local_A = allocateMatrix(rows_per_process, m);
+      local_C = allocateMatrix(rows_per_process, p);
+
+      for(int i = 0; i < rows_per_process; i++) {
+        MPI_Recv(local_A[i], m, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      }
+
+       // std::cout<<"Local Matrix Processor 3" << std::endl;
+      //  printMatrix(local_A, rows_per_process, m);
+    }
+
+/*
+    for(int i = 0; i < size; i++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        if(rank == i) {
+            cout << "\nLokalna część macierzy A dla procesu " << rank << ":\n";
+            int rows_to_print = (rank == 2) ? rows_per_process * 2 : rows_per_process;
+            printMatrix(local_A, rows_to_print, m);
+        }
+    }*/
+
+    multiplyMatrices(local_A, B, local_C, rows_per_process, m, p);
+
+
+    // Wyświetlanie lokalnych wyników
+    for(int i = 0; i < size; i++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        if(rank == i) {
+            cout << "\nWynik lokalnego mnożenia dla procesu " << rank << ":\n";
+            int rows_to_print = (rank == 2) ? rows_per_process * 2 : rows_per_process;
+            printMatrix(local_C, rows_to_print, p);
+        }
     }
     
+if(rank == 3) {
+    // Proces 3 wysyła do 2
+    for(int i = 0; i < rows_per_process; i++) {
+        MPI_Send(local_C[i], p, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD);
+    }
+}
+
+if(rank == 2) {
+    // Proces 2 odbiera od 3
+    double** temp_C = allocateMatrix(rows_per_process, p);
+    for(int i = 0; i < rows_per_process; i++) {
+        MPI_Recv(temp_C[i], p, MPI_DOUBLE, 3, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
     
+    // Kopiowanie danych od procesu 3 do właściwego miejsca
+    for(int i = 0; i < rows_per_process; i++) {
+        for(int j = 0; j < p; j++) {
+            local_C[i + rows_per_process][j] = temp_C[i][j];
+        }
+    }
+    
+    // Wysyłanie całości do procesu 0
+    for(int i = 0; i < rows_per_process * 2; i++) {
+        MPI_Send(local_C[i], p, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+    }
+    freeMatrix(temp_C, rows_per_process);
+}
+
+if(rank == 1) {
+    // Proces 1 wysyła do 0
+    for(int i = 0; i < rows_per_process; i++) {
+        MPI_Send(local_C[i], p, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+    }
+}
+
+if(rank == 0) {
+    // Kopiowanie własnych wyników
+    for(int i = 0; i < rows_per_process; i++) {
+        for(int j = 0; j < p; j++) {
+            C[i][j] = local_C[i][j];
+        }
+    }
+
+    // Odbieranie od procesu 1
+    for(int i = 0; i < rows_per_process; i++) {
+        MPI_Recv(&C[rows_per_process + i][0], p, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    // Odbieranie od procesu 2 (zawiera też wyniki procesu 3)
+    for(int i = 0; i < rows_per_process * 2; i++) {
+        MPI_Recv(&C[rows_per_process * 2 + i][0], p, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    cout << "\nKońcowa macierz C (" << n << "x" << p << "):\n";
+    printMatrix(C, n, p);
+}
+
+    // Zwalnianie pamięci
     if(rank == 0) {
         freeMatrix(A, n);
+        freeMatrix(C, n);
     }
-    freeMatrix(local_A, n);
     freeMatrix(B, m);
-    freeMatrix(local_C, n);
+    if(rank == 2) {
+        freeMatrix(local_A, rows_per_process * 2);
+        freeMatrix(local_C, rows_per_process * 2);
+    } else {
+        freeMatrix(local_A, rows_per_process);
+        freeMatrix(local_C, rows_per_process);
+    }
     
     MPI_Finalize();
     return 0;
