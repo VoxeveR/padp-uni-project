@@ -62,9 +62,9 @@ int main(int argc, char* argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     srand(time(0)); 
-    int n = 8; // rowsA
-    int m = 8; // colsA, rowsB
-    int p = 8; // colsB
+    int n = 3000; // rowsA
+    int m = 3000; // colsA, rowsB
+    int p = 3000; // colsB
 
     if (n % size != 0) {
         if (rank == 0)
@@ -92,17 +92,23 @@ int main(int argc, char* argv[]) {
     double** A = nullptr;
     double** C = nullptr;
     
+    double start_time, end_time;
+
+    if(rank == 0) {
+        start_time = MPI_Wtime();
+    }
+
     if (rank == 0) {
         //generowanie macierzy do rozsyłu danych wp rocesie 0
         A = allocateMatrix(n, m);
         C = allocateMatrix(n, p);
         generateMatrix(A, n, m);
 
-        cout << "Pierwsza macierz (" << n << "x" << m << "):\n";
-        printMatrix(A, n, m);
+       // cout << "Pierwsza macierz (" << n << "x" << m << "):\n";
+       // printMatrix(A, n, m);
         
-        cout << "Druga macierz (" << n << "x" << m << "):\n";
-        printMatrix(B, n, m);
+       // cout << "Druga macierz (" << n << "x" << m << "):\n";
+        //printMatrix(B, n, m);
     }
 
 
@@ -116,9 +122,9 @@ int main(int argc, char* argv[]) {
       }
 
         //sending to processor 1
-      for(int i = 0; i < rows_per_process; i++) {
-        MPI_Send(A[i + rows_per_process], m, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
-      }
+        for(int i = 0; i < rows_per_process; i++) {
+            MPI_Send(A[i + rows_per_process], m, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD);
+        }
 
         //sending to processor 2
         for(int i = 0; i < rows_per_process * 2; i++) {
@@ -127,15 +133,13 @@ int main(int argc, char* argv[]) {
     }
 
     if(rank == 1) {
-
         local_A = allocateMatrix(rows_per_process, m);
         local_C = allocateMatrix(rows_per_process, p);
-      for(int i = 0; i < rows_per_process; i++) {
-        MPI_Recv(local_A[i], m, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      }
 
-      //  std::cout<<"Local Matrix Processor 1" << std::endl;
-       // printMatrix(local_A, rows_per_process, m);
+        for(int i = 0; i < rows_per_process; i++) {
+            MPI_Recv(local_A[i], m, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+
     }
 
 
@@ -151,8 +155,6 @@ int main(int argc, char* argv[]) {
         MPI_Send(local_A[i + rows_per_process], m, MPI_DOUBLE, 3, 0, MPI_COMM_WORLD);
       }
 
-      //  std::cout<<"Local Matrix Processor 2" << std::endl;
-      //  printMatrix(local_A, rows_per_process*2, m);
     }
 
     if(rank == 3){
@@ -163,11 +165,9 @@ int main(int argc, char* argv[]) {
         MPI_Recv(local_A[i], m, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
 
-       // std::cout<<"Local Matrix Processor 3" << std::endl;
-      //  printMatrix(local_A, rows_per_process, m);
     }
 
-/*
+    /*
     for(int i = 0; i < size; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         if(rank == i) {
@@ -175,11 +175,12 @@ int main(int argc, char* argv[]) {
             int rows_to_print = (rank == 2) ? rows_per_process * 2 : rows_per_process;
             printMatrix(local_A, rows_to_print, m);
         }
-    }*/
+    }
+    */
 
     multiplyMatrices(local_A, B, local_C, rows_per_process, m, p);
 
-
+    /*
     // Wyświetlanie lokalnych wyników
     for(int i = 0; i < size; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
@@ -189,63 +190,69 @@ int main(int argc, char* argv[]) {
             printMatrix(local_C, rows_to_print, p);
         }
     }
-    
-if(rank == 3) {
-    // Proces 3 wysyła do 2
-    for(int i = 0; i < rows_per_process; i++) {
-        MPI_Send(local_C[i], p, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD);
-    }
-}
+    */
 
-if(rank == 2) {
-    // Proces 2 odbiera od 3
-    double** temp_C = allocateMatrix(rows_per_process, p);
-    for(int i = 0; i < rows_per_process; i++) {
-        MPI_Recv(temp_C[i], p, MPI_DOUBLE, 3, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    
-    // Kopiowanie danych od procesu 3 do właściwego miejsca
-    for(int i = 0; i < rows_per_process; i++) {
-        for(int j = 0; j < p; j++) {
-            local_C[i + rows_per_process][j] = temp_C[i][j];
-        }
-    }
-    
-    // Wysyłanie całości do procesu 0
-    for(int i = 0; i < rows_per_process * 2; i++) {
-        MPI_Send(local_C[i], p, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    }
-    freeMatrix(temp_C, rows_per_process);
-}
-
-if(rank == 1) {
-    // Proces 1 wysyła do 0
-    for(int i = 0; i < rows_per_process; i++) {
-        MPI_Send(local_C[i], p, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    }
-}
-
-if(rank == 0) {
-    // Kopiowanie własnych wyników
-    for(int i = 0; i < rows_per_process; i++) {
-        for(int j = 0; j < p; j++) {
-            C[i][j] = local_C[i][j];
+    if(rank == 3) {
+        // Proces 3 wysyła do 2
+        for(int i = 0; i < rows_per_process; i++) {
+            MPI_Send(local_C[i], p, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD);
         }
     }
 
-    // Odbieranie od procesu 1
-    for(int i = 0; i < rows_per_process; i++) {
-        MPI_Recv(&C[rows_per_process + i][0], p, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if(rank == 2) {
+        // Proces 2 odbiera od 3
+        double** temp_C = allocateMatrix(rows_per_process, p);
+        for(int i = 0; i < rows_per_process; i++) {
+            MPI_Recv(temp_C[i], p, MPI_DOUBLE, 3, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+        
+        // Kopiowanie danych od procesu 3 do właściwego miejsca
+        for(int i = 0; i < rows_per_process; i++) {
+            for(int j = 0; j < p; j++) {
+                local_C[i + rows_per_process][j] = temp_C[i][j];
+            }
+        }
+        
+        // Wysyłanie całości do procesu 0
+        for(int i = 0; i < rows_per_process * 2; i++) {
+            MPI_Send(local_C[i], p, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        }
+        freeMatrix(temp_C, rows_per_process);
     }
 
-    // Odbieranie od procesu 2 (zawiera też wyniki procesu 3)
-    for(int i = 0; i < rows_per_process * 2; i++) {
-        MPI_Recv(&C[rows_per_process * 2 + i][0], p, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if(rank == 1) {
+        // Proces 1 wysyła do 0
+        for(int i = 0; i < rows_per_process; i++) {
+            MPI_Send(local_C[i], p, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        }
     }
 
-    cout << "\nKońcowa macierz C (" << n << "x" << p << "):\n";
-    printMatrix(C, n, p);
-}
+    if(rank == 0) {
+        // Kopiowanie własnych wyników
+        for(int i = 0; i < rows_per_process; i++) {
+            for(int j = 0; j < p; j++) {
+                C[i][j] = local_C[i][j];
+            }
+        }
+
+        // Odbieranie od procesu 1
+        for(int i = 0; i < rows_per_process; i++) {
+            MPI_Recv(&C[rows_per_process + i][0], p, MPI_DOUBLE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+
+        // Odbieranie od procesu 2 (zawiera też wyniki procesu 3)
+        for(int i = 0; i < rows_per_process * 2; i++) {
+            MPI_Recv(&C[rows_per_process * 2 + i][0], p, MPI_DOUBLE, 2, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+
+        //cout << "\nKońcowa macierz C (" << n << "x" << p << "):\n";
+        //printMatrix(C, n, p);
+    }
+
+    if(rank == 0) {
+        end_time = MPI_Wtime();
+        cout << "\nCzas wykonania mnożenia macierzy: " << (end_time - start_time) << " sekund\n";
+    }
 
     // Zwalnianie pamięci
     if(rank == 0) {
