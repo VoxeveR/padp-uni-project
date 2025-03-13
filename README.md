@@ -4,7 +4,7 @@ Parallel and distributed processing university classes.
 ## MPI_Matrix_Inversion
 This folder contains the implementation of matrix inversion using MPI (Message Passing Interface). The task focuses on parallelizing the matrix inversion process by distributing the workload across multiple processes, improving performance for large matrices.
 
-## Mpi-Matrix_Multipl
+## MPI-Matrix_Multipl
 The MPI Matrix Multiplying folder features an optimized version of matrix multiplication using MPI. The project emphasizes efficient parallelization, ensuring proper load balancing and reduced computational time for large matrix operations.
 
 ## RMI_Gauss/Gauss
