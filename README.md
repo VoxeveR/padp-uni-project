@@ -8,7 +8,7 @@ This folder contains the implementation of matrix inversion using MPI (Message P
 The MPI Matrix Multiplying folder features an optimized version of matrix multiplication using MPI. The project emphasizes efficient parallelization, ensuring proper load balancing and reduced computational time for large matrix operations.
 
 ## RMI_Gauss/Gauss
-This folder contains the Gauss elimination method implementation using threads in Java. It parallelizes the Gaussian elimination process to solve systems of linear equations, improving performance by executing independent parts of the algorithm concurrently.
+This folder contains the Gauss elimination method implementation using Java RMI. It parallelizes the Gaussian elimination process to solve systems of linear equations, improving performance by executing independent parts of the algorithm concurrently.
 
 ## SunRPC_Chebyshev/czebyszew-threads
-This folder showcases the implementation of Chebyshev polynomials using SunRPC for remote procedure calls and parallel threads for computation. The project focuses on efficiently calculating Chebyshev polynomials by distributing the workload across multiple threads and nodes in a distributed system.
+This folder showcases the implementation of Chebyshev polynomials using SunRPC for remote procedure calls and parallel threads for computation. 
